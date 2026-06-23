@@ -5,7 +5,7 @@ import cv2
 import time
 import random
 from datetime import datetime
-# from flask import Flask, render_template, Response, jsonify, send_from_directory
+from flask import Flask, render_template, Response, jsonify, send_from_directory
 
 """
 # 1. AT THE TOP OF THE FILE:
