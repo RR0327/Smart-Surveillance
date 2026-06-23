@@ -7,7 +7,22 @@ import random
 from datetime import datetime
 from flask import Flask, render_template, Response, jsonify, send_from_directory
 
+"""
+# 1. AT THE TOP OF THE FILE:
+from ultralytics import YOLO  # Import your framework of choice (e.g., YOLOv8)
+"""
+
 app = Flask(__name__)
+
+"""
+# 2. IN THE INITIALIZATION SECTOR:
+model = YOLO("your_trained_weights.pt")  # Replace mock_model_inference completely
+
+# 3. INTERNALLY UPDATE THE LOGIC:
+# Replace the contents of dummy_model_inference(frame) with:
+# results = model(frame)
+# Extract actual class IDs, coordinates (results[0].boxes.xyxy), and certainty bounds dynamically.
+"""
 
 # Configuration
 MOCK_DATASET_DIR = "mock_dataset"
@@ -134,3 +149,9 @@ if __name__ == '__main__':
 
 3. Saves a "snapshot" frame to disk whenever an alert triggers.
 """
+
+# Install dependencies: pip install flask opencv-python
+
+# Run the application: python app.py
+
+# Open your web browser and go to http://127.0.0.1:5000/
