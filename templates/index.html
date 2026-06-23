@@ -1,1 +1,123 @@
 <!-- The Frontend Dashboard Dashboard -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Smart Guard Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        .pulse-red { animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .4; } }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+    <header class="border-b border-slate-800 bg-slate-950 p-4 shadow-md flex justify-between items-center">
+        <h1 class="text-xl font-bold tracking-wide text-red-500 flex items-center gap-2">
+            <span class="h-3 w-3 rounded-full bg-red-600 pulse-red"></span>
+            AI GUARD: INTRUSION DETECTION SYSTEM
+        </h1>
+        <span class="text-sm text-slate-400" id="live-clock">Loading Clock...</span>
+    </header>
+
+    <main class="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-6">
+            <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+                <div class="p-3 bg-slate-900 border-b border-slate-800 flex justify-between items-center">
+                    <span class="font-medium text-sm text-slate-300">🔴 Live Feed: Camera Node-01</span>
+                    <span class="text-xs bg-slate-800 px-2 py-1 rounded text-green-400">FPS Source: ~10</span>
+                </div>
+                <div class="bg-black flex justify-center items-center aspect-video max-h-[500px]">
+                    <img src="/video_feed" alt="Live CCTV Monitoring feed" class="w-full h-full object-contain">
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col h-[600px] overflow-hidden">
+            <h2 class="text-lg font-semibold border-b border-slate-800 pb-2 text-slate-300">🚨 Recent Security Incidents</h2>
+            
+            <div id="logs-container" class="mt-4 space-y-3 overflow-y-auto flex-1 pr-2">
+                <p class="text-slate-500 text-sm italic text-center mt-10">Waiting for live security ticks...</p>
+            </div>
+        </div>
+    </main>
+
+    <div id="alert-modal" class="hidden fixed inset-0 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm z-50">
+        <div class="bg-slate-900 border border-red-900 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <h3 class="text-xl font-bold text-red-500 flex items-center gap-2">⚠️ CRISIS LEVEL THREAT VERIFICATION</h3>
+            <p class="text-sm text-slate-300">An intrusion alert has triggered verification requests. Is this a confirmed visual breach?</p>
+            <img id="modal-img" src="" class="w-full rounded-lg border border-slate-700 bg-black aspect-video object-cover" alt="Snapshot Preview">
+            
+            <div class="grid grid-cols-2 gap-3">
+                <button onclick="dismissModal()" class="py-2.5 bg-slate-800 hover:bg-slate-700 font-semibold rounded-lg transition">False Alarm</button>
+                <button onclick="triggerEmergencyResponse()" class="py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg shadow-lg shadow-red-900/40 transition">Confirm Threat (911)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Update Live Clock 
+        setInterval(() => {
+            document.getElementById('live-clock').innerText = new Date().toLocaleString();
+        }, 1000);
+
+        let standardAlertCacheCount = 0;
+
+        // Long-polling function tracking changes via API endpoints
+        async function checkAlertLogs() {
+            try {
+                const response = await fetch('/api/alerts');
+                const data = await response.json();
+                
+                const container = document.getElementById('logs-container');
+                container.innerHTML = ""; // Clear for list injection
+
+                if (data.length > 0) {
+                    // Check if a brand-new threat incident arrived to push the modal notification popup
+                    if(data.length > standardAlertCacheCount && standardAlertCacheCount !== 0) {
+                        launchBreachModal(data[0]);
+                    }
+                    standardAlertCacheCount = data.length;
+
+                    data.forEach(log => {
+                        container.innerHTML += `
+                            <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg flex gap-3 hover:border-slate-700 transition cursor-pointer" onclick='launchBreachModal(${JSON.stringify(log)})'>
+                                <img src="${log.snapshot_url}" class="w-20 h-16 rounded object-cover border border-slate-700 bg-black" alt="alert frame">
+                                <div class="flex-1 text-xs">
+                                    <div class="flex justify-between font-bold text-slate-200">
+                                        <span class="text-red-400">${log.id}</span>
+                                        <span class="text-amber-500 text-[10px]">Conf: ${log.confidence}</span>
+                                    </div>
+                                    <p class="text-slate-300 font-medium mt-1">Loc: ${log.location}</p>
+                                    <p class="text-[10px] text-slate-500 mt-1">${log.timestamp}</p>
+                                </div>
+                            </div>`;
+                    });
+                }
+            } catch (err) { console.error("Error communicating with endpoints:", err); }
+        }
+
+        function launchBreachModal(incident) {
+            document.getElementById('modal-img').src = incident.snapshot_url;
+            document.getElementById('alert-modal').classList.remove('hidden');
+        }
+
+        function dismissModal() {
+            document.getElementById('alert-modal').classList.add('hidden');
+        }
+
+        function triggerEmergencyResponse() {
+            // Mock Location response behavior [cite: 28, 36]
+            alert("EMERGENCY PROTOCOL ACTIVATED!\n\nRouting to Local Dispatch Precinct.\nMock Dispatch Hotline: +1 (555) 019-9999");
+            dismissModal();
+        }
+
+        // Poll API updates every 2 seconds
+        setInterval(checkAlertLogs, 2000);
+        checkAlertLogs();
+    </script>
+</body>
+</html>
