@@ -152,6 +152,14 @@ if __name__ == '__main__':
 
 # Install dependencies: pip install flask opencv-python
 
+# If You Later Swap In the Real Model
+"""
+When you replace dummy_model_inference() with an actual YOLO model (as noted in your comments), you'll also need:
+
+pip install ultralytics
+
+That will pull in PyTorch and everything YOLOv8 needs.
+"""
 # Run the application: python app.py
 
 # Open your web browser and go to http://127.0.0.1:5000/
