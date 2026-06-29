@@ -1,0 +1,1 @@
+# Database creidentials & SMTP credentials are stored in a separate file for security reasons. Please create a file named `config.py` in the same directory as this script and add the following variables:

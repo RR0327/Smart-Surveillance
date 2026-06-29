@@ -1,0 +1,10 @@
+Flask==3.0.2
+psycopg2-binary==2.9.9
+ultralytics==8.1.0
+opencv-python-headless==4.9.0.80
+python-dotenv==1.0.1
+
+
+# For activation this run:
+
+# pip install -r requirements.txt
