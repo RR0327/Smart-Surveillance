@@ -29,3 +29,43 @@ The dashboard should simply:
 - Provide the owner response buttons
 - Show police contact information
 - Serve the UI
+
+So before I write the code, I need to know:
+
+> Which architecture do you want?
+
+**`Option A`** (Recommended for Capstone)
+
+**`live_observer.py`** does all AI processing.
+
+**`app.py`** only:
+
+- Dashboard
+- Alert history
+- Owner response endpoint
+- Police lookup endpoint
+- Snapshot viewing
+
+This is the architecture I would recommend for your research project.
+
+**`Option B`**
+
+Move YOLO detection directly into Flask and remove **`live_observer.py`**.
+
+This is simpler but less professional and harder to scale.
+
+We choose **`Option A`**, I'll provide a complete production-style **`app.py`** with:
+
+- Flask 3.x
+- PostgreSQL integration
+- .env support
+- Alert API
+- Owner confirmation endpoint
+- Police contact lookup
+- Dashboard routes
+- Snapshot serving
+- Error handling
+- Logging
+  -Ready-to-use code compatible with your capstone structure
+
+and then I'll also provide the matching **`config.py`** and **`PostgreSQL`** schema.
