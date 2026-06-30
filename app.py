@@ -1,143 +1,281 @@
-# Main Flask Application
+"""
+1. AT THE TOP OF THE FILE:
+from ultralytics import YOLO  # Import your framework of choice (e.g., YOLOv8)
+
+
+2. IN THE INITIALIZATION SECTOR:
+model = YOLO("your_trained_weights.pt")  # Replace mock_model_inference completely
+
+3. INTERNALLY UPDATE THE LOGIC:
+Replace the contents of dummy_model_inference(frame) with:
+results = model(frame)
+Extract actual class IDs, coordinates (results[0].boxes.xyxy), and certainty bounds dynamically.
+
+
+Flask Dashboard Application
+Intrusion Detection System (IDS)
+
+Responsibilities:
+1. Dashboard UI
+2. Alert History API
+3. Owner Response Endpoint
+4. Police Contact Lookup
+5. Snapshot Access
+"""
 
 import os
-import cv2
-import time
-import random
-from datetime import datetime
-from flask import Flask, render_template, Response, jsonify, send_from_directory
+import psycopg2
+from dotenv import load_dotenv
+from flask import (
+    Flask,
+    render_template,
+    jsonify,
+    request
+)
 
-"""
-# 1. AT THE TOP OF THE FILE:
-from ultralytics import YOLO  # Import your framework of choice (e.g., YOLOv8)
-"""
+# ==================================================
+# LOAD ENVIRONMENT VARIABLES
+# ==================================================
+
+load_dotenv()
+
+# ==================================================
+# FLASK APP
+# ==================================================
 
 app = Flask(__name__)
 
-"""
-# 2. IN THE INITIALIZATION SECTOR:
-model = YOLO("your_trained_weights.pt")  # Replace mock_model_inference completely
+# ==================================================
+# DATABASE CONFIGURATION
+# ==================================================
 
-# 3. INTERNALLY UPDATE THE LOGIC:
-# Replace the contents of dummy_model_inference(frame) with:
-# results = model(frame)
-# Extract actual class IDs, coordinates (results[0].boxes.xyxy), and certainty bounds dynamically.
-"""
+DB_CONFIG = {
+    "dbname": os.getenv("DB_NAME"),
+    "user": os.getenv("DB_USER"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST"),
+    "port": os.getenv("DB_PORT", "5432")
+}
 
-# Configuration
-MOCK_DATASET_DIR = "mock_dataset"
-UPLOAD_DIR = "static/uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+# ==================================================
+# DATABASE CONNECTION
+# ==================================================
 
-# Shared memory/in-memory log database to mimic past incidents
-incident_logs = [
-    {
-        "id": "ALERT-000",
-        "timestamp": "2026-06-22 14:32:10",
-        "location": "Warehouse Entrance",
-        "confidence": "94%",
-        "snapshot_url": "/static/uploads/intruder_sample.jpg" # Fallback dummy
+def get_db_connection():
+    """
+    Create PostgreSQL connection.
+    """
+    return psycopg2.connect(**DB_CONFIG)
+
+# ==================================================
+# POLICE CONTACT DATABASE
+# ==================================================
+
+POLICE_CONTACTS = {
+    "Warehouse Main Entrance": {
+        "station": "Local Police Station",
+        "phone": "+8801000000000"
+    },
+
+    "Back Gate": {
+        "station": "Back Gate Police Station",
+        "phone": "+8801111111111"
+    },
+
+    "Warehouse Entrance": {
+        "station": "Warehouse Police Station",
+        "phone": "+8801222222222"
+    },
+
+    "Main Lobby": {
+        "station": "Main Lobby Police Station",
+        "phone": "+8801333333333"
     }
-]
+}
 
-# Copy a dummy intruder image over for initial rendering if available
-if os.path.exists(f"{MOCK_DATASET_DIR}/intruder_sample.jpg"):
-    import shutil
-    shutil.copy(f"{MOCK_DATASET_DIR}/intruder_sample.jpg", f"{UPLOAD_DIR}/intruder_sample.jpg")
+# ==================================================
+# HOME PAGE
+# ==================================================
 
-
-# ==========================================
-# 1. THE DUMMY MODEL SECTOR (Swap this later!)
-# ==========================================
-def dummy_model_inference(frame):
+@app.route("/")
+def dashboard():
     """
-    Simulates a Computer Vision model analyzing a frame.
-    Returns: (is_intrusion, confidence_score, bounding_box)
+    Main Dashboard UI
     """
-    # 2% chance per frame to trigger an intrusion alert
-    is_intrusion = random.choices([True, False], weights=[2, 98])[0]
-    
-    if is_intrusion:
-        confidence = round(random.uniform(0.82, 0.98), 2)
-        # Mock normalized coordinates: [ymin, xmin, ymax, xmax] 
-        # Relative to a standard 640x480 frame space
-        bounding_box = [100, 150, 350, 450] 
-        return is_intrusion, confidence, bounding_box
-    
-    return False, 0.0, []
+    return render_template("dashboard.html")
 
+# ==================================================
+# GET LATEST ALERTS
+# ==================================================
 
-# ==========================================
-# LIVE CCTV STREAM SIMULATOR
-# ==========================================
-def generate_frames():
-    # Simulate video input stream
-    video_path = os.path.join(MOCK_DATASET_DIR, "live_stream.mp4")
-    
-    while True:
-        cap = cv2.VideoCapture(video_path if os.path.exists(video_path) else 0) # Fallback to webcam
-        
-        while cap.isOpened():
-            success, frame = cap.read()
-            if not success:
-                break # Loop back to start of video if it ends
-
-            # Pass the frame into our dummy AI engine!
-            is_intrusion, confidence, bbox = dummy_model_inference(frame)
-
-            if is_intrusion:
-                # 1. Draw a mock red bounding box on the frame overlay
-                ymin, xmin, ymax, xmax = bbox
-                cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 0, 255), 3)
-                cv2.putText(frame, f"INTRUDER: {int(confidence*100)}%", (xmin, ymin - 10),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-                
-                # 2. Capture Snapshot & Log Metadata asynchronously
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                filename = f"snapshot_{int(time.time())}.jpg"
-                filepath = os.path.join(UPLOAD_DIR, filename)
-                cv2.imwrite(filepath, frame) # Save the alert image frame
-                
-                # 3. Save to our system's active tracking logs
-                incident_logs.insert(0, {
-                    "id": f"ALERT-{random.randint(100, 999)}",
-                    "timestamp": timestamp,
-                    "location": random.choice(["Back Gate", "Warehouse Entrance", "Main Lobby"]),
-                    "confidence": f"{int(confidence*100)}%",
-                    "snapshot_url": f"/{UPLOAD_DIR}/{filename}"
-                })
-
-            # Reduce stream framework processing load slightly to simulate 10 FPS
-            time.sleep(0.1)
-
-            # Encode frame to serve over HTTP Multipart protocol
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame_bytes = buffer.tobytes()
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-        
-        cap.release()
-
-# ==========================================
-# FLASK WEB ENDPOINTS
-# ==========================================
-@app.route('/')
-def index():
-    """Renders main Dashboard UI Interface"""
-    return render_template('index.html')
-
-@app.route('/video_feed')
-def video_feed():
-    """Stream route for the HTML <img> tag"""
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/api/alerts')
+@app.route("/api/alerts", methods=["GET"])
 def get_alerts():
-    """API endpoint for frontend UI to fetch latest incident alerts"""
-    return jsonify(incident_logs[:10]) # Limit to last 10 incidents
+    """
+    Return latest intrusion alerts.
+    """
 
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                id,
+                timestamp,
+                location,
+                confidence,
+                snapshot_path
+            FROM intrusion_logs
+            ORDER BY timestamp DESC
+            LIMIT 20;
+        """)
+
+        rows = cursor.fetchall()
+
+        alerts = []
+
+        for row in rows:
+            alerts.append({
+                "id": row[0],
+                "timestamp": str(row[1]),
+                "location": row[2],
+                "confidence": round(float(row[3]) * 100, 2),
+                "snapshot_path": row[4]
+            })
+
+        cursor.close()
+        conn.close()
+
+        return jsonify({
+            "success": True,
+            "alerts": alerts
+        })
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+# ==================================================
+# OWNER RESPONSE ENDPOINT
+# ==================================================
+
+@app.route("/api/response", methods=["GET"])
+def owner_response():
+    """
+    Email button endpoint.
+
+    Example:
+    /api/response?status=yes&location=Back Gate
+    """
+
+    status = request.args.get("status")
+    location = request.args.get("location")
+
+    if not status:
+        return jsonify({
+            "success": False,
+            "message": "Status missing."
+        }), 400
+
+    # -----------------------------------------
+    # THREAT CONFIRMED
+    # -----------------------------------------
+
+    if status.lower() == "yes":
+
+        police_info = POLICE_CONTACTS.get(
+            location,
+            {
+                "station": "Nearest Police Station",
+                "phone": "999"
+            }
+        )
+
+        return jsonify({
+            "success": True,
+            "message": "Threat confirmed by owner.",
+            "police_station": police_info["station"],
+            "police_phone": police_info["phone"]
+        })
+
+    # -----------------------------------------
+    # FALSE ALARM
+    # -----------------------------------------
+
+    elif status.lower() == "no":
+
+        return jsonify({
+            "success": True,
+            "message": "Incident marked as false alarm."
+        })
+
+    return jsonify({
+        "success": False,
+        "message": "Invalid status."
+    }), 400
+
+# ==================================================
+# POLICE LOOKUP API
+# ==================================================
+
+@app.route("/api/police/<location>", methods=["GET"])
+def get_police(location):
+    """
+    Get police information based on camera location.
+    """
+
+    police = POLICE_CONTACTS.get(location)
+
+    if not police:
+        return jsonify({
+            "success": False,
+            "message": "Police information not found."
+        }), 404
+
+    return jsonify({
+        "success": True,
+        "location": location,
+        "station": police["station"],
+        "phone": police["phone"]
+    })
+
+# ==================================================
+# SYSTEM HEALTH CHECK
+# ==================================================
+
+@app.route("/health", methods=["GET"])
+def health_check():
+    """
+    Health monitoring endpoint.
+    """
+
+    try:
+        conn = get_db_connection()
+        conn.close()
+
+        return jsonify({
+            "status": "healthy",
+            "database": "connected"
+        })
+
+    except Exception as e:
+        return jsonify({
+            "status": "unhealthy",
+            "database": str(e)
+        }), 500
+
+# ==================================================
+# APPLICATION ENTRY
+# ==================================================
+
+if __name__ == "__main__":
+    app.run(
+        host="0.0.0.0",
+        port=5000,
+        debug=True
+    )
 
 
 """
