@@ -1,8 +1,33 @@
-Flask==3.0.2
-psycopg2-binary==2.9.9
-ultralytics==8.1.0
-opencv-python-headless==4.9.0.80
+# ============================
+# Intrusion Detection System
+# Capstone Project
+# ============================
+
+# Web Framework
+Flask==3.0.3
+
+# Environment Variables
 python-dotenv==1.0.1
+
+# PostgreSQL
+psycopg2-binary==2.9.10
+
+# Computer Vision
+opencv-python==4.10.0.84
+ultralytics==8.3.0
+
+# Numerical Computing
+numpy==2.1.1
+
+# Deep Learning (Install according to your system)
+torch
+torchvision
+
+# Image Processing
+Pillow==10.4.0
+
+# HTTP Requests
+requests==2.32.3
 
 
 # For activation this run:

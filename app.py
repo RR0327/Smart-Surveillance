@@ -22,10 +22,22 @@ Responsibilities:
 4. Police Contact Lookup
 5. Snapshot Access
 """
+"""
+app.py
 
-import os
+Flask Dashboard Backend
+---------------------------------
+
+Responsibilities:
+1. Dashboard UI
+2. Alert History API
+3. Owner Response API
+4. Police Lookup API
+5. Health Check API
+"""
+
 import psycopg2
-from dotenv import load_dotenv
+
 from flask import (
     Flask,
     render_template,
@@ -33,29 +45,13 @@ from flask import (
     request
 )
 
-# ==================================================
-# LOAD ENVIRONMENT VARIABLES
-# ==================================================
-
-load_dotenv()
+from config import DB_CONFIG
 
 # ==================================================
 # FLASK APP
 # ==================================================
 
 app = Flask(__name__)
-
-# ==================================================
-# DATABASE CONFIGURATION
-# ==================================================
-
-DB_CONFIG = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT", "5432")
-}
 
 # ==================================================
 # DATABASE CONNECTION
@@ -67,42 +63,46 @@ def get_db_connection():
     """
     return psycopg2.connect(**DB_CONFIG)
 
+
 # ==================================================
-# POLICE CONTACT DATABASE
+# POLICE DIRECTORY
 # ==================================================
 
 POLICE_CONTACTS = {
+
     "Warehouse Main Entrance": {
         "station": "Local Police Station",
-        "phone": "+8801000000000"
+        "phone": "999"
     },
 
     "Back Gate": {
         "station": "Back Gate Police Station",
-        "phone": "+8801111111111"
+        "phone": "+8801711111111"
     },
 
     "Warehouse Entrance": {
         "station": "Warehouse Police Station",
-        "phone": "+8801222222222"
+        "phone": "+8801722222222"
     },
 
     "Main Lobby": {
         "station": "Main Lobby Police Station",
-        "phone": "+8801333333333"
+        "phone": "+8801733333333"
     }
 }
 
+
 # ==================================================
-# HOME PAGE
+# DASHBOARD PAGE
 # ==================================================
 
 @app.route("/")
 def dashboard():
     """
-    Main Dashboard UI
+    Main dashboard page.
     """
     return render_template("dashboard.html")
+
 
 # ==================================================
 # GET LATEST ALERTS
@@ -110,15 +110,15 @@ def dashboard():
 
 @app.route("/api/alerts", methods=["GET"])
 def get_alerts():
-    """
-    Return latest intrusion alerts.
-    """
 
     try:
+
         conn = get_db_connection()
+
         cursor = conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT
                 id,
                 timestamp,
@@ -128,23 +128,28 @@ def get_alerts():
             FROM intrusion_logs
             ORDER BY timestamp DESC
             LIMIT 20;
-        """)
+            """
+        )
 
         rows = cursor.fetchall()
+
+        cursor.close()
+        conn.close()
 
         alerts = []
 
         for row in rows:
+
             alerts.append({
                 "id": row[0],
                 "timestamp": str(row[1]),
                 "location": row[2],
-                "confidence": round(float(row[3]) * 100, 2),
+                "confidence": round(
+                    float(row[3]) * 100,
+                    2
+                ),
                 "snapshot_path": row[4]
             })
-
-        cursor.close()
-        conn.close()
 
         return jsonify({
             "success": True,
@@ -152,31 +157,95 @@ def get_alerts():
         })
 
     except Exception as e:
+
         return jsonify({
             "success": False,
             "error": str(e)
         }), 500
 
+
 # ==================================================
-# OWNER RESPONSE ENDPOINT
+# GET SINGLE ALERT
 # ==================================================
 
-@app.route("/api/response", methods=["GET"])
+@app.route(
+    "/api/alerts/<int:alert_id>",
+    methods=["GET"]
+)
+def get_alert(alert_id):
+
+    try:
+
+        conn = get_db_connection()
+
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                timestamp,
+                location,
+                confidence,
+                snapshot_path
+            FROM intrusion_logs
+            WHERE id = %s;
+            """,
+            (alert_id,)
+        )
+
+        row = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if not row:
+
+            return jsonify({
+                "success": False,
+                "message": "Alert not found."
+            }), 404
+
+        return jsonify({
+            "success": True,
+            "alert": {
+                "id": row[0],
+                "timestamp": str(row[1]),
+                "location": row[2],
+                "confidence": round(
+                    float(row[3]) * 100,
+                    2
+                ),
+                "snapshot_path": row[4].replace("\\", "/")
+            }
+        })
+
+    except Exception as e:
+
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+
+# ==================================================
+# OWNER RESPONSE
+# ==================================================
+
+@app.route(
+    "/api/response",
+    methods=["GET"]
+)
 def owner_response():
-    """
-    Email button endpoint.
-
-    Example:
-    /api/response?status=yes&location=Back Gate
-    """
 
     status = request.args.get("status")
     location = request.args.get("location")
 
     if not status:
+
         return jsonify({
             "success": False,
-            "message": "Status missing."
+            "message": "Missing status."
         }), 400
 
     # -----------------------------------------
@@ -185,7 +254,7 @@ def owner_response():
 
     if status.lower() == "yes":
 
-        police_info = POLICE_CONTACTS.get(
+        police = POLICE_CONTACTS.get(
             location,
             {
                 "station": "Nearest Police Station",
@@ -195,20 +264,25 @@ def owner_response():
 
         return jsonify({
             "success": True,
-            "message": "Threat confirmed by owner.",
-            "police_station": police_info["station"],
-            "police_phone": police_info["phone"]
+            "message": (
+                "Threat confirmed by owner."
+            ),
+            "police_station":
+                police["station"],
+            "police_phone":
+                police["phone"]
         })
 
     # -----------------------------------------
     # FALSE ALARM
     # -----------------------------------------
 
-    elif status.lower() == "no":
+    if status.lower() == "no":
 
         return jsonify({
             "success": True,
-            "message": "Incident marked as false alarm."
+            "message":
+                "Incident marked as false alarm."
         })
 
     return jsonify({
@@ -216,22 +290,25 @@ def owner_response():
         "message": "Invalid status."
     }), 400
 
+
 # ==================================================
-# POLICE LOOKUP API
+# POLICE LOOKUP
 # ==================================================
 
-@app.route("/api/police/<location>", methods=["GET"])
+@app.route(
+    "/api/police/<location>",
+    methods=["GET"]
+)
 def get_police(location):
-    """
-    Get police information based on camera location.
-    """
 
     police = POLICE_CONTACTS.get(location)
 
     if not police:
+
         return jsonify({
             "success": False,
-            "message": "Police information not found."
+            "message":
+                "Police information not found."
         }), 404
 
     return jsonify({
@@ -241,18 +318,21 @@ def get_police(location):
         "phone": police["phone"]
     })
 
+
 # ==================================================
 # SYSTEM HEALTH CHECK
 # ==================================================
 
-@app.route("/health", methods=["GET"])
-def health_check():
-    """
-    Health monitoring endpoint.
-    """
+@app.route(
+    "/health",
+    methods=["GET"]
+)
+def health():
 
     try:
+
         conn = get_db_connection()
+
         conn.close()
 
         return jsonify({
@@ -261,22 +341,24 @@ def health_check():
         })
 
     except Exception as e:
+
         return jsonify({
             "status": "unhealthy",
             "database": str(e)
         }), 500
 
+
 # ==================================================
-# APPLICATION ENTRY
+# RUN APPLICATION
 # ==================================================
 
 if __name__ == "__main__":
+
     app.run(
         host="0.0.0.0",
         port=5000,
         debug=True
     )
-
 
 """
 - This backend script does three things:

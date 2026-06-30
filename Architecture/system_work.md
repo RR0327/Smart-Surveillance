@@ -69,3 +69,37 @@ We choose **`Option A`**, I'll provide a complete production-style **`app.py`** 
   -Ready-to-use code compatible with your capstone structure
 
 and then I'll also provide the matching **`config.py`** and **`PostgreSQL`** schema.
+
+## What Still Needs Improvement for a Strong Capstone
+
+> Your current system detects:
+
+```bash
+Person
++
+After Hours
+=
+Intrusion
+```
+
+## For your research title:
+
+> "Suspicious Behavior and After-Hours Intrusion"
+
+a stronger future version would add:
+
+```bash
+Person Detection
+        +
+Object Tracking
+        +
+Restricted Zone Detection
+        +
+Night-Time Enhancement
+        +
+After-Hours Rule
+        =
+Final Intrusion Decision
+```
+
+That would make the project much stronger academically.
