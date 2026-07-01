@@ -69,6 +69,18 @@ logging.basicConfig(...)
 
 everywhere.
 
+> ### Why logger.py?
+
+Both `app.py` and `live_observer.py` will use logging, so it's better to centralize it first.
+
+A good logger.py should:
+
+Configure both console and file logging.
+Automatically create the logs/ directory if it doesn't exist.
+Write logs to logs/system.log.
+Use a consistent format (timestamp, level, module, message).
+Expose a helper like get_logger(name) so every module can do:
+
 > ## utils/police_lookup.py
 
 Instead of
