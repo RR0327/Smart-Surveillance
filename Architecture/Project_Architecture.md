@@ -23,3 +23,29 @@ live_observer.py
  Dashboard  Alerts  Owner Response
 
 ```
+
+## Final Architecture
+
+```bash
+Camera
+   │
+   ▼
+live_observer.py
+   │
+   ├─────────────┐
+   ▼             ▼
+database.py   email_service.py
+   │             │
+   ▼             ▼
+ PostgreSQL     SMTP
+      │
+      ▼
+   app.py
+      │
+      ▼
+dashboard.html
+      │
+dashboard.js
+```
+
+This is a `professional software architecture`.

@@ -94,3 +94,109 @@ That would include:
 - Unit tests and structured logging
 
 These additions would make our project significantly stronger for both our capstone defense and our portfolio.
+
+> ## Modification of file name
+
+Since this is your Capstone Project, I would make it even more professional.
+
+Instead of
+
+```bash
+utils/
+```
+
+I would create
+
+```bash
+services/
+```
+
+because
+
+```bash
+email_service.py
+```
+
+is actually a service.
+
+```bash
+database.py
+```
+
+is also a service.
+
+## Example
+
+```bash
+intrusion_system/
+
+services/
+
+email_service.py
+
+database_service.py
+
+camera_service.py
+
+police_service.py
+```
+
+Looks much more professional.
+
+## Things I Want to Improve Before Final Submission
+
+Currently
+
+```bash
+Person
+↓
+
+Alert
+```
+
+I want
+
+```bash
+Frame
+↓
+
+Night Enhancement
+
+↓
+
+YOLO
+
+↓
+
+ROI Detection
+
+↓
+
+Business Hour Check
+
+↓
+
+Tracker
+
+↓
+
+Intrusion Decision
+
+↓
+
+Save Snapshot
+
+↓
+
+Database
+
+↓
+
+Email
+
+↓
+
+Dashboard
+```
+
+This is much stronger for our research paper.
